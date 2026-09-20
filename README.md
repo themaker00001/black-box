@@ -54,6 +54,20 @@ python -m app.main run
 This starts capturing in the foreground. Stop with Ctrl-C — collectors shut
 down cleanly.
 
+### Dashboard
+
+A local web dashboard starts automatically at
+[http://127.0.0.1:8765](http://127.0.0.1:8765) (localhost only — see
+`web.*` in `config.yaml` to change the port or disable it):
+
+- **/** — live system health: CPU/memory, top processes, an OK / needs-attention
+  banner, and the incident list.
+- **/incidents/&lt;id&gt;** — a mind map of that incident: the trigger and the
+  AI's extracted root cause as the hub, correlated evidence as spokes, a
+  screenshot of the screen at the time, and the chronological chain of the
+  highest-signal events. Click any node for its full evidence text; the full
+  AI analysis renders alongside.
+
 ### Triggering an incident manually
 
 ```bash

@@ -15,7 +15,7 @@ from app.capture.terminal import TerminalCollector
 from app.config.settings import Settings, load_settings
 from app.events.bus import EventBus
 from app.events.models import Event
-from app.evidence.processor import build_evidence
+from app.evidence.processor import build_evidence, write_evidence
 from app.incident.manager import IncidentManager
 from app.incident.models import Incident
 from app.llm.ollama import OllamaClient
@@ -25,6 +25,7 @@ from app.triggers.crash_detector import CrashDetector
 from app.triggers.exception_detector import ExceptionDetector
 from app.triggers.manual_trigger import ManualTrigger
 from app.triggers.system_detector import SystemDetector
+from app.webapp.server import WebServer
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class BlackBox:
             SystemDetector(self._bus, settings.triggers.system_detector, self._incident_manager.handle_trigger),
         ]
         self._manual_trigger = ManualTrigger(settings.triggers.manual_trigger, self._incident_manager.handle_trigger)
+        self._web_server = WebServer(self._buffer, self._store, settings)
 
     def _on_evict(self, event: Event) -> None:
         if event.event_type == "screen.capture":
@@ -77,6 +79,7 @@ class BlackBox:
     def _on_incident_ready(self, incident: Incident, events: list[Event]) -> None:
         logger.info("processing incident %s (%d events)", incident.incident_id, len(events))
         evidence = build_evidence(incident, events)
+        write_evidence(incident, evidence)
         analysis = self._agent.investigate(evidence)
         report_path = write_report(incident, evidence, analysis)
         self._store.save(incident, analysis, str(report_path))
@@ -87,9 +90,11 @@ class BlackBox:
         for collector in self._collectors:
             collector.start()
         self._manual_trigger.start()
+        self._web_server.start()
 
     def stop(self) -> None:
         logger.info("stopping Black Box")
+        self._web_server.stop()
         self._manual_trigger.stop()
         for collector in self._collectors:
             collector.stop()

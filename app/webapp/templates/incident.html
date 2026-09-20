@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Incident {{ incident_id }} · Black Box</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/">Black Box</a> / Incident</h1>
+  </header>
+
+  <main class="incident-layout">
+    <section class="graph-panel">
+      <div id="cy"></div>
+      <p class="hint">Click a node for detail. Drag to rearrange, scroll to zoom.</p>
+    </section>
+
+    <aside class="detail-panel">
+      <div id="incident-meta"></div>
+      <h3>Node detail</h3>
+      <div id="node-detail" class="node-detail">Click a node in the graph.</div>
+      <h3>Full AI analysis</h3>
+      <div id="analysis" class="analysis"></div>
+      <div id="screenshot-wrap"></div>
+    </aside>
+  </main>
+
+  <script>
+    const INCIDENT_ID = {{ incident_id | tojson }};
+  </script>
+  <script src="/static/incident.js"></script>
+</body>
+</html>

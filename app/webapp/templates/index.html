@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Black Box</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Black Box</h1>
+    <div id="status-pill" class="pill pill-unknown">checking…</div>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2>System right now</h2>
+      <div class="metrics">
+        <div class="metric">
+          <span class="metric-label">CPU</span>
+          <div class="bar"><div id="cpu-bar" class="bar-fill"></div></div>
+          <span id="cpu-value" class="metric-value">–</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Memory</span>
+          <div class="bar"><div id="mem-bar" class="bar-fill"></div></div>
+          <span id="mem-value" class="metric-value">–</span>
+        </div>
+      </div>
+      <table class="proc-table">
+        <thead><tr><th>Process</th><th>CPU%</th><th>Mem%</th></tr></thead>
+        <tbody id="proc-rows"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Incidents</h2>
+      <p class="hint">Automatic on crash/exception/sustained load, or trigger one yourself:
+        <code>echo "reason" &gt; ~/.blackbox/trigger_now</code></p>
+      <ul id="incident-list" class="incident-list"></ul>
+    </section>
+  </main>
+
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

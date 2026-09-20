@@ -15,6 +15,20 @@ const KIND_BASE_SIZE = {
 
 let cy = null;
 
+function wireIcons() {
+  document.getElementById("icon-grid").innerHTML = ICONS.grid;
+  document.getElementById("icon-chevron").innerHTML = ICONS.chevronRight;
+  document.getElementById("icon-zoom-in").innerHTML = ICONS.zoomIn;
+  document.getElementById("icon-zoom-out").innerHTML = ICONS.zoomOut;
+  document.getElementById("icon-maximize").innerHTML = ICONS.maximize;
+  document.getElementById("icon-node").innerHTML = ICONS.cube;
+  document.getElementById("icon-cause").innerHTML = ICONS.lightbulb;
+  document.getElementById("icon-evidence").innerHTML = ICONS.list;
+  document.getElementById("icon-steps").innerHTML = ICONS.checkSquare;
+  document.getElementById("icon-link").innerHTML = ICONS.link;
+  document.getElementById("icon-image").innerHTML = ICONS.image;
+}
+
 async function loadIncident() {
   const res = await fetch(`/api/incidents/${INCIDENT_ID}`);
   if (!res.ok) {
@@ -40,7 +54,8 @@ function renderExplanation(incident) {
   const sections = incident.analysis_sections || {};
 
   const rootCause = document.getElementById("root-cause-card");
-  rootCause.textContent = sections.most_likely_cause || "No AI analysis available.";
+  const rootCauseText = sections.most_likely_cause || "No AI analysis available.";
+  rootCause.innerHTML = `<span class="icon">${ICONS.lightbulb}</span><span>${escapeHtml(rootCauseText)}</span>`;
   if (!sections.most_likely_cause) rootCause.classList.add("empty");
 
   const evidence = document.getElementById("evidence-card");
@@ -53,7 +68,9 @@ function renderExplanation(incident) {
 
   const nextSteps = document.getElementById("next-steps-card");
   if (sections.next_steps && sections.next_steps.length) {
-    nextSteps.innerHTML = `<ul>${sections.next_steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>`;
+    nextSteps.innerHTML = `<ul>${sections.next_steps
+      .map((s) => `<li><span class="icon">${ICONS.checkSquare}</span>${escapeHtml(s)}</li>`)
+      .join("")}</ul>`;
   } else {
     nextSteps.textContent = "No next steps suggested.";
     nextSteps.classList.add("empty");
@@ -63,7 +80,7 @@ function renderExplanation(incident) {
   const correlations = incident.correlations || [];
   if (correlations.length) {
     chipRow.innerHTML = correlations
-      .map((c) => `<span class="chip" title="${escapeHtml(c.description)}">${escapeHtml(c.kind.replace(/_/g, " "))}</span>`)
+      .map((c) => `<span class="chip" title="${escapeHtml(c.description)}"><span class="dot"></span>${escapeHtml(c.kind.replace(/_/g, " "))}</span>`)
       .join("");
   } else {
     document.getElementById("correlations-section").style.display = "none";
@@ -99,6 +116,10 @@ function renderGraph(graph) {
           height: (n) => sizeFor(n),
           "background-color": (n) => KIND_COLOR[n.data("kind")] || "#89b4fa",
           "border-width": 0,
+          "overlay-color": (n) => KIND_COLOR[n.data("kind")] || "#89b4fa",
+          "overlay-opacity": 0.22,
+          "overlay-padding": 7,
+          "overlay-shape": "ellipse",
           "transition-property": "opacity",
           "transition-duration": "150ms",
         },
@@ -171,8 +192,7 @@ function escapeHtml(text) {
 document.getElementById("toggle-panel").addEventListener("click", () => {
   const shell = document.getElementById("incident-shell");
   shell.classList.toggle("panel-collapsed");
-  const btn = document.getElementById("toggle-panel");
-  btn.textContent = shell.classList.contains("panel-collapsed") ? "⟨" : "⟩";
+  document.getElementById("toggle-panel").classList.toggle("flipped", shell.classList.contains("panel-collapsed"));
   setTimeout(() => {
     if (cy) {
       cy.resize();
@@ -181,4 +201,9 @@ document.getElementById("toggle-panel").addEventListener("click", () => {
   }, 260);
 });
 
+document.getElementById("zoom-in").addEventListener("click", () => cy && cy.zoom(cy.zoom() * 1.25));
+document.getElementById("zoom-out").addEventListener("click", () => cy && cy.zoom(cy.zoom() / 1.25));
+document.getElementById("zoom-fit").addEventListener("click", () => cy && cy.fit(undefined, 40));
+
+wireIcons();
 loadIncident();

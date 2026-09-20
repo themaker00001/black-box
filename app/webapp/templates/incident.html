@@ -10,7 +10,7 @@
   <div class="shell">
     <nav class="sidebar">
       <div class="brand"><span class="brand-mark"></span> Black Box</div>
-      <a class="nav-link" href="/">◆ Dashboard</a>
+      <a class="nav-link" href="/"><span class="icon" id="icon-grid"></span> Dashboard</a>
       <div class="nav-section-label">Recent incidents</div>
       <div id="sidebar-incidents"></div>
       <div class="sidebar-status">
@@ -23,9 +23,14 @@
       <section class="graph-panel">
         <div class="graph-topbar">
           <div class="graph-title"><a href="/">Dashboard</a> / <strong id="graph-title-text">Incident</strong></div>
-          <button id="toggle-panel" class="icon-btn" title="Toggle explanation panel">⟩</button>
+          <button id="toggle-panel" class="icon-btn" title="Toggle explanation panel"><span class="icon" id="icon-chevron"></span></button>
         </div>
         <div id="cy"></div>
+        <div class="zoom-controls">
+          <button id="zoom-in" class="icon-btn" title="Zoom in"><span class="icon" id="icon-zoom-in"></span></button>
+          <button id="zoom-out" class="icon-btn" title="Zoom out"><span class="icon" id="icon-zoom-out"></span></button>
+          <button id="zoom-fit" class="icon-btn" title="Fit to view"><span class="icon" id="icon-maximize"></span></button>
+        </div>
         <div class="graph-legend">
           <span><span class="legend-dot" style="background:#f38ba8"></span> Trigger</span>
           <span><span class="legend-dot" style="background:#cba6f7"></span> Root cause</span>
@@ -43,32 +48,32 @@
           </div>
 
           <div class="panel-section">
-            <h3>Node detail</h3>
+            <h3><span class="icon" id="icon-node"></span> Node detail</h3>
             <div id="node-detail" class="node-detail-box">Click a node in the graph.</div>
           </div>
 
           <div class="panel-section">
-            <h3>Most likely cause</h3>
+            <h3><span class="icon" id="icon-cause"></span> Most likely cause</h3>
             <div id="root-cause-card" class="explain-card root-cause"></div>
           </div>
 
           <div class="panel-section">
-            <h3>Supporting evidence</h3>
-            <div id="evidence-card" class="explain-card"></div>
+            <h3><span class="icon" id="icon-evidence"></span> Supporting evidence</h3>
+            <div id="evidence-card" class="explain-card evidence"></div>
           </div>
 
           <div class="panel-section">
-            <h3>Suggested next steps</h3>
-            <div id="next-steps-card" class="explain-card"></div>
+            <h3><span class="icon" id="icon-steps"></span> Suggested next steps</h3>
+            <div id="next-steps-card" class="explain-card next-steps"></div>
           </div>
 
           <div class="panel-section" id="correlations-section">
-            <h3>Correlated findings</h3>
+            <h3><span class="icon" id="icon-link"></span> Correlated findings</h3>
             <div class="chip-row" id="correlation-chips"></div>
           </div>
 
           <div class="panel-section" id="screenshot-section" style="display:none">
-            <h3>Screen at incident time</h3>
+            <h3><span class="icon" id="icon-image"></span> Screen at incident time</h3>
             <div id="screenshot-wrap"></div>
           </div>
         </div>
@@ -79,6 +84,7 @@
   <script>
     const INCIDENT_ID = {{ incident_id | tojson }};
   </script>
+  <script src="/static/icons.js"></script>
   <script src="/static/sidebar.js"></script>
   <script src="/static/incident.js"></script>
 </body>

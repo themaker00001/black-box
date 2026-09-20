@@ -3,3 +3,11 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+.pytest_cache/
+
+# Runtime data: incident recordings, screenshots, and the SQLite DB are
+# machine-local evidence, not source.
+incidents/*
+!incidents/.gitkeep
+*.db
+*.db-journal

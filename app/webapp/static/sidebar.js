@@ -25,7 +25,7 @@ async function refreshSidebar() {
         const a = document.createElement("a");
         a.href = `/incidents/${incident.incident_id}`;
         a.className = "sidebar-incident" + (incident.incident_id === currentId ? " active" : "");
-        const dotColor = incident.analysis_succeeded ? "#a6e3a1" : "#f9e2af";
+        const dotColor = incident.analysis_succeeded ? "#3ddc84" : "#f3c14b";
         a.innerHTML = `<span class="dot" style="background:${dotColor}"></span>${escapeHtmlShared(incident.trigger_reason)}`;
         container.appendChild(a);
       }

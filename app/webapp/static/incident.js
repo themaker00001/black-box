@@ -1,16 +1,24 @@
-const KIND_COLOR = {
-  trigger: "#f38ba8",
-  root_cause: "#cba6f7",
-  correlation: "#f9e2af",
-  screenshot: "#94e2d5",
-  event: "#89b4fa",
-};
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// root_cause/subject read the live theme accent so switching themes recolors
+// the two most important nodes; the rest carry fixed semantic colors that
+// stay meaningful (danger, info, etc.) no matter which accent is active.
+function kindColor(kind) {
+  if (kind === "root_cause") return cssVar("--accent");
+  if (kind === "subject") return cssVar("--accent-2") || cssVar("--accent");
+  return (
+    { trigger: "#ff5c72", correlation: "#f3c14b", screenshot: "#4fd8c4", event: "#5b9dff" }[kind] || "#5b9dff"
+  );
+}
 const KIND_BASE_SIZE = {
-  trigger: 40,
-  root_cause: 40,
-  correlation: 26,
-  screenshot: 26,
-  event: 20,
+  trigger: 42,
+  root_cause: 42,
+  subject: 46,
+  correlation: 24,
+  screenshot: 24,
+  event: 18,
 };
 
 let cy = null;
@@ -108,17 +116,17 @@ function renderGraph(graph) {
           "text-wrap": "wrap",
           "text-max-width": "90px",
           "font-size": "10px",
-          color: "#cdd6f4",
+          color: cssVar("--text") || "#f2f2f4",
           "text-valign": "bottom",
           "text-margin-y": 6,
-          "text-opacity": 0.85,
+          "text-opacity": 0.9,
           width: (n) => sizeFor(n),
           height: (n) => sizeFor(n),
-          "background-color": (n) => KIND_COLOR[n.data("kind")] || "#89b4fa",
+          "background-color": (n) => kindColor(n.data("kind")),
           "border-width": 0,
-          "overlay-color": (n) => KIND_COLOR[n.data("kind")] || "#89b4fa",
-          "overlay-opacity": 0.22,
-          "overlay-padding": 7,
+          "overlay-color": (n) => kindColor(n.data("kind")),
+          "overlay-opacity": 0.28,
+          "overlay-padding": 9,
           "overlay-shape": "ellipse",
           "transition-property": "opacity",
           "transition-duration": "150ms",
@@ -128,8 +136,8 @@ function renderGraph(graph) {
         selector: "edge",
         style: {
           width: 1,
-          "line-color": "#313244",
-          "target-arrow-color": "#313244",
+          "line-color": cssVar("--border") || "#232326",
+          "target-arrow-color": cssVar("--border") || "#232326",
           "target-arrow-shape": "triangle",
           "arrow-scale": 0.7,
           "curve-style": "bezier",
@@ -138,22 +146,24 @@ function renderGraph(graph) {
           "transition-duration": "150ms",
         },
       },
-      { selector: ".faded", style: { opacity: 0.12 } },
+      { selector: ".faded", style: { opacity: 0.1 } },
       { selector: ".highlighted", style: { opacity: 1 } },
       {
         selector: "node.highlighted",
-        style: { "border-width": 2, "border-color": "#fff", "border-opacity": 0.6 },
+        style: { "border-width": 2, "border-color": "#fff", "border-opacity": 0.7 },
       },
     ],
     layout: {
       name: "cose",
       animate: false,
-      nodeRepulsion: 9000,
-      idealEdgeLength: 90,
-      gravity: 45,
-      numIter: 1000,
+      nodeRepulsion: 22000,
+      nodeOverlap: 40,
+      idealEdgeLength: 150,
+      edgeElasticity: 80,
+      gravity: 30,
+      numIter: 2000,
       fit: true,
-      padding: 40,
+      padding: 50,
     },
   });
 
@@ -175,6 +185,15 @@ function renderGraph(graph) {
     const data = evt.target.data();
     document.getElementById("node-detail").textContent = data.detail || "(no detail)";
   });
+
+  pulseNode(cy.getElementById("trigger"));
+}
+
+function pulseNode(node) {
+  if (!node || node.empty()) return;
+  const grow = () => node.animate({ style: { "overlay-padding": 16, "overlay-opacity": 0.45 } }, { duration: 900, easing: "ease-in-out", complete: shrink });
+  const shrink = () => node.animate({ style: { "overlay-padding": 8, "overlay-opacity": 0.24 } }, { duration: 900, easing: "ease-in-out", complete: grow });
+  grow();
 }
 
 function sizeFor(node) {

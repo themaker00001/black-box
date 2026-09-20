@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <title>Incident {{ incident_id }} · Black Box</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <script>
+    try {
+      var t = localStorage.getItem("blackbox-theme");
+      if (t && t !== "mono") document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
 </head>
 <body>
@@ -17,6 +23,7 @@
         <span id="sidebar-status-dot" class="status-dot"></span>
         <span id="sidebar-status-text">checking…</span>
       </div>
+      <div id="theme-switcher" class="theme-switcher"></div>
     </nav>
 
     <div class="incident-shell" id="incident-shell">
@@ -32,11 +39,12 @@
           <button id="zoom-fit" class="icon-btn" title="Fit to view"><span class="icon" id="icon-maximize"></span></button>
         </div>
         <div class="graph-legend">
-          <span><span class="legend-dot" style="background:#f38ba8"></span> Trigger</span>
-          <span><span class="legend-dot" style="background:#cba6f7"></span> Root cause</span>
-          <span><span class="legend-dot" style="background:#f9e2af"></span> Correlation</span>
-          <span><span class="legend-dot" style="background:#89b4fa"></span> Event</span>
-          <span><span class="legend-dot" style="background:#94e2d5"></span> Screen</span>
+          <span><span class="legend-dot" style="background:#ff5c72"></span> Trigger</span>
+          <span><span class="legend-dot" style="background:var(--accent)"></span> Root cause</span>
+          <span><span class="legend-dot" style="background:var(--accent-2)"></span> Subject process</span>
+          <span><span class="legend-dot" style="background:#f3c14b"></span> Correlation</span>
+          <span><span class="legend-dot" style="background:#5b9dff"></span> Event</span>
+          <span><span class="legend-dot" style="background:#4fd8c4"></span> Screen</span>
         </div>
       </section>
 
@@ -85,6 +93,7 @@
     const INCIDENT_ID = {{ incident_id | tojson }};
   </script>
   <script src="/static/icons.js"></script>
+  <script src="/static/theme.js"></script>
   <script src="/static/sidebar.js"></script>
   <script src="/static/incident.js"></script>
 </body>

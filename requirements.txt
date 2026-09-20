@@ -1,0 +1,6 @@
+psutil>=5.9
+mss>=9.0
+pydantic>=2.6
+PyYAML>=6.0
+requests>=2.31
+pytest>=8.0

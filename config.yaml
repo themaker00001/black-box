@@ -1,0 +1,82 @@
+# Black Box configuration.
+# Every collector, trigger, and the agent can be tuned here without touching code.
+
+buffer:
+  retention_seconds: 300          # rolling window kept in memory ("the last ~5 minutes")
+  pre_incident_seconds: 300       # how far back an incident snapshot reaches
+  post_incident_seconds: 5        # small tail captured after a trigger fires
+
+capture:
+  screen:
+    enabled: true
+    interval_seconds: 1.0
+    monitor: "all"                # "all" or a monitor index (1, 2, ...)
+    storage_dir: "~/.blackbox/screenshots"
+    max_dimension: 1600           # screenshots are downscaled to this max width/height
+
+  system:
+    enabled: true
+    interval_seconds: 2.0
+    collect_gpu: true             # best-effort; disables itself silently if unavailable
+
+  processes:
+    enabled: true
+    interval_seconds: 2.0
+    top_n_by_cpu: 15
+    top_n_by_memory: 15
+
+  terminal:
+    enabled: false                # opt-in: terminal capture is off by default (privacy)
+    event_log_path: "~/.blackbox/terminal_events.jsonl"
+    capture_stdout: false
+    capture_stderr: false
+    max_output_chars: 2000
+    redact_patterns:
+      - "(?i)password"
+      - "(?i)passwd"
+      - "(?i)secret"
+      - "(?i)api[_-]?key"
+      - "(?i)token"
+      - "(?i)ssh-"
+
+  os_events:
+    enabled: true
+    poll_interval_seconds: 2.0
+    diagnostic_reports_dir: "~/Library/Logs/DiagnosticReports"
+    unified_log_predicate: >-
+      (eventMessage CONTAINS "crashed") OR (eventMessage CONTAINS "Crash") OR
+      (messageType == 16) OR (messageType == 17)
+
+triggers:
+  crash_detector:
+    enabled: true
+  exception_detector:
+    enabled: true
+  system_detector:
+    enabled: true
+    cpu_percent_threshold: 95
+    memory_percent_threshold: 95
+    sustained_seconds: 10
+  manual_trigger:
+    enabled: true
+    signal_file: "~/.blackbox/trigger_now"
+    poll_interval_seconds: 1.0
+
+incident:
+  output_dir: "incidents"
+  max_open_incidents: 3
+
+llm:
+  provider: "ollama"
+  host: "http://localhost:11434"
+  model: "qwen3:14b"              # any locally pulled model: qwen3:14b, llama3.2:latest, llama3:8b
+  request_timeout_seconds: 180
+  temperature: 0.2
+  max_context_events: 400         # caps how many timeline events get serialized into the prompt
+
+storage:
+  database_path: "incidents/blackbox.db"
+
+logging:
+  level: "INFO"
+  log_dir: "~/.blackbox/logs"

@@ -12,6 +12,7 @@ from app.buffer.circular_buffer import CircularBuffer
 from app.config.settings import Settings
 from app.evidence.processor import load_evidence
 from app.storage.incident_store import IncidentStore
+from app.webapp.analysis_parser import parse_analysis
 from app.webapp.graph_builder import build_incident_graph
 from app.webapp.status import build_status
 
@@ -67,7 +68,8 @@ def create_app(buffer: CircularBuffer, store: IncidentStore, settings: Settings)
             abort(404)
 
         evidence = load_evidence(Path(row["output_dir"]))
-        graph = build_incident_graph(evidence, row["analysis_text"] or "") if evidence else {"nodes": [], "edges": []}
+        analysis_text = row["analysis_text"] or ""
+        graph = build_incident_graph(evidence, analysis_text) if evidence else {"nodes": [], "edges": []}
         screenshot_url = None
         if evidence and evidence.representative_screenshot:
             screenshot_url = f"/media/{incident_id}/{Path(evidence.representative_screenshot).name}"
@@ -81,7 +83,9 @@ def create_app(buffer: CircularBuffer, store: IncidentStore, settings: Settings)
                 "event_count": row["event_count"],
                 "model_used": row["model_used"],
                 "analysis_succeeded": bool(row["analysis_succeeded"]),
-                "analysis_text": row["analysis_text"],
+                "analysis_text": analysis_text,
+                "analysis_sections": parse_analysis(analysis_text).model_dump(),
+                "correlations": [c.model_dump() for c in evidence.correlations] if evidence else [],
                 "graph": graph,
                 "screenshot_url": screenshot_url,
             }

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import re
-
 from app.evidence.processor import EvidencePackage
+from app.webapp.analysis_parser import parse_analysis
 
 _HIGH_SIGNAL_TYPES = {
     "os.crash_report",
@@ -16,10 +15,8 @@ _MAX_EVIDENCE_NODES = 25
 
 
 def _extract_root_cause(analysis_text: str) -> str:
-    match = re.search(r"##\s*Most Likely Cause\s*\n(.+?)(\n##|\Z)", analysis_text, re.DOTALL)
-    if not match:
-        return analysis_text.strip()[:300] or "No AI analysis available"
-    return match.group(1).strip()
+    sections = parse_analysis(analysis_text)
+    return sections.most_likely_cause or analysis_text.strip()[:300] or "No AI analysis available"
 
 
 def build_incident_graph(evidence: EvidencePackage, analysis_text: str) -> dict:

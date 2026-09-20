@@ -12,20 +12,28 @@ do next. Nothing leaves the machine.
 
 ## Screenshots
 
-**Dashboard** — live system health at a glance: CPU/memory as color-coded
-radial gauges (purple → orange → red by threshold), a CPU trend sparkline,
+True black throughout, with a switchable accent theme — monochrome
+(white/gray) by default, or pick violet/blue/green/rose/amber from the
+swatch picker in the sidebar. The choice is saved per-browser and recolors
+the dashboard *and* the mind map's root-cause/subject nodes together.
+
+**Dashboard** — live system health at a glance: CPU/memory as radial gauges
+that shift from accent → orange → red by threshold, a CPU trend sparkline,
 per-process mini bar charts, KPI tiles, and an OK / needs-attention banner.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
-**Incident mind map** — an Obsidian-style force-directed graph: the trigger
-and the AI's extracted root cause form the hub (larger, glowing nodes sized
-by how connected they are), correlated evidence radiates out as spokes, and
-a chronological chain of the highest-signal events traces what led up to it.
-Hovering a node highlights its neighborhood and fades the rest. The side
-panel breaks the AI's explanation into structured cards — Most Likely Cause,
-Supporting Evidence, Suggested Next Steps — instead of a wall of markdown,
-and collapses out of the way when you want the graph full-screen.
+**Incident mind map** — an Obsidian-style force-directed graph built to
+answer three questions at a glance: what went wrong (the trigger, red), what
+the AI thinks caused it (the root-cause hub, accent-colored), and what thing
+was actually involved (the single most-implicated process, promoted into its
+own glowing subject node with its name and pid — not a generic "event"
+label). A chronological chain of the highest-signal events traces what led
+up to it, and hovering any node highlights its neighborhood while fading the
+rest. The side panel breaks the AI's explanation into structured cards —
+Most Likely Cause, Supporting Evidence, Suggested Next Steps — instead of a
+wall of markdown, and collapses out of the way when you want the graph
+full-screen.
 
 ![Incident mind map](docs/screenshots/incident-mindmap.png)
 
@@ -83,14 +91,17 @@ A local web dashboard starts automatically at
   count, tracked processes), CPU/memory as radial gauges plus a live CPU
   sparkline, a per-process table with inline usage bars, an OK /
   needs-attention banner, and the incident list.
-- **/incidents/&lt;id&gt;** — the mind map: the trigger and the AI's extracted
-  root cause as the hub (node size reflects how connected it is, like
-  Obsidian's graph view), correlated evidence as spokes, a screenshot of the
-  screen at the time, and the chronological chain of the highest-signal
-  events. Hover a node to highlight its neighborhood; click it for the full
-  evidence text. Zoom in/out/fit controls float over the graph. The
-  collapsible side panel renders the AI's explanation as structured cards
-  (Most Likely Cause, Supporting Evidence, Suggested Next Steps) rather than
+- A theme swatch picker sits at the bottom of the sidebar on every page —
+  monochrome by default, five accent colors to choose from, saved per-browser.
+- **/incidents/&lt;id&gt;** — the mind map: the trigger (red) and the AI's
+  extracted root cause (accent) as the hub, the single most-implicated
+  process promoted into its own subject node (its actual name and pid, not a
+  generic label), correlated evidence as spokes, a screenshot of the screen
+  at the time, and the chronological chain of the highest-signal events.
+  Hover a node to highlight its neighborhood; click it for the full evidence
+  text. Zoom in/out/fit controls float over the graph. The collapsible side
+  panel renders the AI's explanation as structured cards (Most Likely Cause,
+  Supporting Evidence, Suggested Next Steps) rather than
   raw markdown.
 
 ### Triggering an incident manually

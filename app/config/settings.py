@@ -117,6 +117,12 @@ class LoggingSettings(BaseModel):
     log_dir: Path = Path("~/.blackbox/logs")
 
 
+class WebSettings(BaseModel):
+    enabled: bool = True
+    host: str = "127.0.0.1"
+    port: int = 8765
+
+
 class Settings(BaseModel):
     buffer: BufferSettings = BufferSettings()
     capture: CaptureSettings = CaptureSettings()
@@ -125,6 +131,7 @@ class Settings(BaseModel):
     llm: LlmSettings = LlmSettings()
     storage: StorageSettings = StorageSettings()
     logging: LoggingSettings = LoggingSettings()
+    web: WebSettings = WebSettings()
 
     def resolved(self) -> "Settings":
         """Return a copy with every filesystem path expanded (~, env vars)."""

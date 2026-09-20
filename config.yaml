@@ -80,3 +80,8 @@ storage:
 logging:
   level: "INFO"
   log_dir: "~/.blackbox/logs"
+
+web:
+  enabled: true
+  host: "127.0.0.1"    # localhost only — never exposed on the network
+  port: 8765

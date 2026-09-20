@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
 
 from pydantic import BaseModel
 
@@ -33,6 +34,23 @@ def build_evidence(incident: Incident, events: list[Event]) -> EvidencePackage:
         correlations=findings,
         representative_screenshot=_closest_screenshot(events, incident),
     )
+
+
+def write_evidence(incident: Incident, evidence: EvidencePackage) -> Path:
+    """Persists the evidence package alongside the raw snapshot so the web
+    frontend can render the incident's mind map without recomputing it."""
+    output_dir = Path(incident.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / "evidence.json"
+    path.write_text(evidence.model_dump_json(indent=2))
+    return path
+
+
+def load_evidence(incident_dir: Path) -> EvidencePackage | None:
+    path = incident_dir / "evidence.json"
+    if not path.exists():
+        return None
+    return EvidencePackage.model_validate_json(path.read_text())
 
 
 def _closest_screenshot(events: list[Event], incident: Incident) -> str | None:

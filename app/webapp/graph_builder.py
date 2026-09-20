@@ -19,10 +19,25 @@ def _extract_root_cause(analysis_text: str) -> str:
     return sections.most_likely_cause or analysis_text.strip()[:300] or "No AI analysis available"
 
 
+def _pick_subject_entry(high_signal: list[dict]) -> dict | None:
+    """The single process/entity this incident is 'about', if one is evident —
+    a crash report wins outright; otherwise the first process lifecycle event.
+    Promoting it into its own hub node is what answers 'what is the thing'
+    at a glance, instead of making the reader open every node to find out."""
+    for entry in high_signal:
+        if entry["type"] == "os.crash_report" and entry.get("subject"):
+            return entry
+    for entry in high_signal:
+        if entry["type"] in ("process.started", "process.terminated") and entry.get("subject"):
+            return entry
+    return None
+
+
 def build_incident_graph(evidence: EvidencePackage, analysis_text: str) -> dict:
     """A mind-map-style node/edge graph for Cytoscape: a trigger+root-cause hub,
-    correlation findings as spokes off that hub, and a chronological chain of
-    the highest-signal timeline events — so the shape itself tells the story."""
+    the implicated process promoted to its own subject node, correlation
+    findings as spokes, and a chronological chain of the highest-signal
+    timeline events — so the shape itself tells the story."""
     nodes: list[dict] = []
     edges: list[dict] = []
 
@@ -47,6 +62,22 @@ def build_incident_graph(evidence: EvidencePackage, analysis_text: str) -> dict:
         }
     )
     edges.append({"data": {"id": "trigger-root_cause", "source": "trigger", "target": "root_cause"}})
+
+    high_signal = [e for e in evidence.timeline if e["type"] in _HIGH_SIGNAL_TYPES][:_MAX_EVIDENCE_NODES]
+    subject_entry = _pick_subject_entry(high_signal)
+    if subject_entry:
+        nodes.append(
+            {
+                "data": {
+                    "id": "subject",
+                    "label": f"⬤ {subject_entry['subject']}",
+                    "kind": "subject",
+                    "detail": subject_entry["summary"],
+                }
+            }
+        )
+        edges.append({"data": {"id": "trigger-subject", "source": "trigger", "target": "subject"}})
+        edges.append({"data": {"id": "root_cause-subject", "source": "root_cause", "target": "subject"}})
 
     for i, finding in enumerate(evidence.correlations):
         node_id = f"corr_{i}"
@@ -75,15 +106,16 @@ def build_incident_graph(evidence: EvidencePackage, analysis_text: str) -> dict:
         )
         edges.append({"data": {"id": "trigger-screenshot", "source": "trigger", "target": "screenshot"}})
 
-    high_signal = [e for e in evidence.timeline if e["type"] in _HIGH_SIGNAL_TYPES][:_MAX_EVIDENCE_NODES]
-    previous_id: str | None = None
+    previous_id: str | None = "subject" if subject_entry else None
     for i, entry in enumerate(high_signal):
+        if entry is subject_entry:
+            continue
         node_id = f"evt_{i}"
         nodes.append(
             {
                 "data": {
                     "id": node_id,
-                    "label": f"t={entry['t']:+.1f}s\n{entry['source']}",
+                    "label": f"{entry['label']}\nt={entry['t']:+.1f}s",
                     "kind": "event",
                     "detail": entry["summary"],
                 }

@@ -68,8 +68,22 @@ def _evidence(correlations=None) -> EvidencePackage:
         trigger_reason="crashed",
         event_counts_by_source={"os_event": 1},
         timeline=[
-            {"t": -2.0, "source": "os_event", "type": "os.crash_report", "summary": "CRASH REPORT: hog"},
-            {"t": -1.0, "source": "process", "type": "process.terminated", "summary": "process terminated: hog"},
+            {
+                "t": -2.0,
+                "source": "os_event",
+                "type": "os.crash_report",
+                "summary": "CRASH REPORT: hog",
+                "label": "hog crashed",
+                "subject": "hog (pid 111)",
+            },
+            {
+                "t": -1.0,
+                "source": "process",
+                "type": "process.terminated",
+                "summary": "process terminated: hog",
+                "label": "■ hog",
+                "subject": "hog (pid 111)",
+            },
         ],
         correlations=correlations or [],
         representative_screenshot="/tmp/x/shot.png",
@@ -85,6 +99,17 @@ def test_graph_includes_trigger_root_cause_and_screenshot_nodes():
     assert "screenshot" in node_ids
 
 
+def test_graph_promotes_the_implicated_process_to_a_subject_node():
+    graph = build_incident_graph(_evidence(), "## Most Likely Cause\nX")
+    subject_nodes = [n for n in graph["nodes"] if n["data"]["kind"] == "subject"]
+
+    assert len(subject_nodes) == 1
+    assert "hog" in subject_nodes[0]["data"]["label"]
+    edge_pairs = {(e["data"]["source"], e["data"]["target"]) for e in graph["edges"]}
+    assert ("trigger", "subject") in edge_pairs
+    assert ("root_cause", "subject") in edge_pairs
+
+
 def test_graph_adds_a_spoke_per_correlation_finding():
     correlations = [CorrelationFinding(kind="crash_matches_termination", description="d")]
     graph = build_incident_graph(_evidence(correlations), "## Most Likely Cause\nX")
@@ -95,7 +120,14 @@ def test_graph_adds_a_spoke_per_correlation_finding():
 
 
 def test_graph_chains_high_signal_events_chronologically():
-    graph = build_incident_graph(_evidence(), "## Most Likely Cause\nX")
+    # crash_report/process.terminated get promoted to the subject node, so use
+    # event types that stay as plain chain nodes to isolate chaining behavior.
+    evidence = _evidence()
+    evidence.timeline = [
+        {"t": -2.0, "source": "terminal", "type": "terminal.command", "summary": "$ a", "label": "a", "subject": None},
+        {"t": -1.0, "source": "terminal", "type": "terminal.command", "summary": "$ b", "label": "b", "subject": None},
+    ]
+    graph = build_incident_graph(evidence, "## Most Likely Cause\nX")
     event_nodes = [n["data"]["id"] for n in graph["nodes"] if n["data"]["kind"] == "event"]
 
     assert len(event_nodes) == 2

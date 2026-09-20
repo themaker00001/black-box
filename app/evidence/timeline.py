@@ -18,10 +18,12 @@ _HIGH_SIGNAL_TYPES = {
 
 
 class TimelineEntry:
-    def __init__(self, event: Event, offset_seconds: float, summary: str) -> None:
+    def __init__(self, event: Event, offset_seconds: float, summary: str, label: str, subject: str | None) -> None:
         self.event = event
         self.offset_seconds = offset_seconds
         self.summary = summary
+        self.label = label
+        self.subject = subject
 
     def as_dict(self) -> dict:
         return {
@@ -29,6 +31,8 @@ class TimelineEntry:
             "source": self.event.source.value,
             "type": self.event.event_type,
             "summary": self.summary,
+            "label": self.label,
+            "subject": self.subject,
         }
 
 
@@ -46,7 +50,13 @@ def build_timeline(events: list[Event], max_events: int, anchor: datetime | None
 
     combined = sorted(high_signal + sampled_low_signal, key=lambda e: e.timestamp)
     return [
-        TimelineEntry(event, (event.timestamp - anchor).total_seconds(), _summarize(event))
+        TimelineEntry(
+            event,
+            (event.timestamp - anchor).total_seconds(),
+            _summarize(event),
+            _short_label(event),
+            _subject(event),
+        )
         for event in combined
     ]
 
@@ -89,3 +99,44 @@ def _summarize(event: Event) -> str:
             return f"TRIGGER ({p.get('trigger_name')}): {p.get('reason')}"
         case _:
             return event.event_type
+
+
+def _short_label(event: Event) -> str:
+    """A compact, identity-first label for graph nodes — 'what the thing is',
+    not just 'an event of this type happened'."""
+    p = event.payload
+    match event.event_type:
+        case "screen.capture":
+            return "Screenshot"
+        case "system.metrics":
+            return f"CPU {p.get('cpu_percent', 0):.0f}%"
+        case "process.snapshot":
+            top = p.get("processes", [])
+            return top[0]["name"] if top else "Processes"
+        case "process.started":
+            return f"▶ {p.get('name', '?')}"
+        case "process.terminated":
+            return f"■ {p.get('name', '?')}"
+        case "terminal.command":
+            command = p.get("command", "")
+            return command if len(command) <= 22 else command[:21] + "…"
+        case "os.crash_report":
+            return f"{p.get('process_name', 'process')} crashed"
+        case "os.unified_log":
+            message = p.get("message", "")
+            return message if len(message) <= 22 else message[:21] + "…"
+        case "trigger.fired":
+            return str(p.get("trigger_name", "trigger"))
+        case _:
+            return event.event_type
+
+
+def _subject(event: Event) -> str | None:
+    """The process this event is 'about', when there is one — used to promote
+    the single most relevant process into its own hub node in the graph."""
+    p = event.payload
+    if event.event_type in ("process.started", "process.terminated") and p.get("name"):
+        return f"{p['name']} (pid {p.get('pid')})"
+    if event.event_type == "os.crash_report" and p.get("process_name"):
+        return f"{p['process_name']} (pid {p.get('pid')})" if p.get("pid") else p["process_name"]
+    return None

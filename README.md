@@ -10,6 +10,25 @@ correlates the evidence, and asks a **local** LLM running through
 [Ollama](https://ollama.com) to explain what most likely happened and what to
 do next. Nothing leaves the machine.
 
+## Screenshots
+
+**Dashboard** — live system health at a glance: CPU/memory as color-coded
+radial gauges (purple → orange → red by threshold), a CPU trend sparkline,
+per-process mini bar charts, KPI tiles, and an OK / needs-attention banner.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+**Incident mind map** — an Obsidian-style force-directed graph: the trigger
+and the AI's extracted root cause form the hub (larger, glowing nodes sized
+by how connected they are), correlated evidence radiates out as spokes, and
+a chronological chain of the highest-signal events traces what led up to it.
+Hovering a node highlights its neighborhood and fades the rest. The side
+panel breaks the AI's explanation into structured cards — Most Likely Cause,
+Supporting Evidence, Suggested Next Steps — instead of a wall of markdown,
+and collapses out of the way when you want the graph full-screen.
+
+![Incident mind map](docs/screenshots/incident-mindmap.png)
+
 ## Architecture
 
 ```
@@ -60,13 +79,19 @@ A local web dashboard starts automatically at
 [http://127.0.0.1:8765](http://127.0.0.1:8765) (localhost only — see
 `web.*` in `config.yaml` to change the port or disable it):
 
-- **/** — live system health: CPU/memory, top processes, an OK / needs-attention
-  banner, and the incident list.
-- **/incidents/&lt;id&gt;** — a mind map of that incident: the trigger and the
-  AI's extracted root cause as the hub, correlated evidence as spokes, a
-  screenshot of the screen at the time, and the chronological chain of the
-  highest-signal events. Click any node for its full evidence text; the full
-  AI analysis renders alongside.
+- **/** — live system health: KPI tiles (status, buffered events, incident
+  count, tracked processes), CPU/memory as radial gauges plus a live CPU
+  sparkline, a per-process table with inline usage bars, an OK /
+  needs-attention banner, and the incident list.
+- **/incidents/&lt;id&gt;** — the mind map: the trigger and the AI's extracted
+  root cause as the hub (node size reflects how connected it is, like
+  Obsidian's graph view), correlated evidence as spokes, a screenshot of the
+  screen at the time, and the chronological chain of the highest-signal
+  events. Hover a node to highlight its neighborhood; click it for the full
+  evidence text. Zoom in/out/fit controls float over the graph. The
+  collapsible side panel renders the AI's explanation as structured cards
+  (Most Likely Cause, Supporting Evidence, Suggested Next Steps) rather than
+  raw markdown.
 
 ### Triggering an incident manually
 

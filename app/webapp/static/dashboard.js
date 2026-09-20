@@ -27,7 +27,7 @@ function setBar(prefix, value) {
     return;
   }
   bar.style.width = `${Math.min(value, 100)}%`;
-  bar.style.background = value >= 90 ? "var(--bad)" : value >= 70 ? "var(--warn)" : "var(--accent)";
+  bar.style.background = value >= 90 ? "var(--red)" : value >= 70 ? "var(--peach)" : "linear-gradient(90deg, var(--blue), var(--accent))";
   label.textContent = `${value.toFixed(1)}%`;
 }
 
@@ -44,8 +44,9 @@ async function refreshIncidents() {
 
   for (const incident of incidents) {
     const li = document.createElement("li");
-    const statusLabel = incident.analysis_succeeded ? "" : " (AI unavailable)";
-    li.innerHTML = `<a href="/incidents/${incident.incident_id}">${escapeHtml(incident.trigger_reason)}${statusLabel}</a>
+    const badge = incident.analysis_succeeded ? "" : '<span class="badge">AI unavailable</span>';
+    li.innerHTML = `<a href="/incidents/${incident.incident_id}">${escapeHtml(incident.trigger_reason)}</a>
+      ${badge}
       <span class="hint">${new Date(incident.created_at).toLocaleString()}</span>`;
     list.appendChild(li);
   }

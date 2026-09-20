@@ -5,32 +5,81 @@
   <title>Incident {{ incident_id }} · Black Box</title>
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <h1><a href="/">Black Box</a> / Incident</h1>
-  </header>
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="brand"><span class="brand-mark"></span> Black Box</div>
+      <a class="nav-link" href="/">◆ Dashboard</a>
+      <div class="nav-section-label">Recent incidents</div>
+      <div id="sidebar-incidents"></div>
+      <div class="sidebar-status">
+        <span id="sidebar-status-dot" class="status-dot"></span>
+        <span id="sidebar-status-text">checking…</span>
+      </div>
+    </nav>
 
-  <main class="incident-layout">
-    <section class="graph-panel">
-      <div id="cy"></div>
-      <p class="hint">Click a node for detail. Drag to rearrange, scroll to zoom.</p>
-    </section>
+    <div class="incident-shell" id="incident-shell">
+      <section class="graph-panel">
+        <div class="graph-topbar">
+          <div class="graph-title"><a href="/">Dashboard</a> / <strong id="graph-title-text">Incident</strong></div>
+          <button id="toggle-panel" class="icon-btn" title="Toggle explanation panel">⟩</button>
+        </div>
+        <div id="cy"></div>
+        <div class="graph-legend">
+          <span><span class="legend-dot" style="background:#f38ba8"></span> Trigger</span>
+          <span><span class="legend-dot" style="background:#cba6f7"></span> Root cause</span>
+          <span><span class="legend-dot" style="background:#f9e2af"></span> Correlation</span>
+          <span><span class="legend-dot" style="background:#89b4fa"></span> Event</span>
+          <span><span class="legend-dot" style="background:#94e2d5"></span> Screen</span>
+        </div>
+      </section>
 
-    <aside class="detail-panel">
-      <div id="incident-meta"></div>
-      <h3>Node detail</h3>
-      <div id="node-detail" class="node-detail">Click a node in the graph.</div>
-      <h3>Full AI analysis</h3>
-      <div id="analysis" class="analysis"></div>
-      <div id="screenshot-wrap"></div>
-    </aside>
-  </main>
+      <aside class="panel">
+        <div class="panel-inner">
+          <div class="panel-section">
+            <div class="meta-title" id="meta-title">Loading…</div>
+            <div class="meta-sub" id="meta-sub"></div>
+          </div>
+
+          <div class="panel-section">
+            <h3>Node detail</h3>
+            <div id="node-detail" class="node-detail-box">Click a node in the graph.</div>
+          </div>
+
+          <div class="panel-section">
+            <h3>Most likely cause</h3>
+            <div id="root-cause-card" class="explain-card root-cause"></div>
+          </div>
+
+          <div class="panel-section">
+            <h3>Supporting evidence</h3>
+            <div id="evidence-card" class="explain-card"></div>
+          </div>
+
+          <div class="panel-section">
+            <h3>Suggested next steps</h3>
+            <div id="next-steps-card" class="explain-card"></div>
+          </div>
+
+          <div class="panel-section" id="correlations-section">
+            <h3>Correlated findings</h3>
+            <div class="chip-row" id="correlation-chips"></div>
+          </div>
+
+          <div class="panel-section" id="screenshot-section" style="display:none">
+            <h3>Screen at incident time</h3>
+            <div id="screenshot-wrap"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
 
   <script>
     const INCIDENT_ID = {{ incident_id | tojson }};
   </script>
+  <script src="/static/sidebar.js"></script>
   <script src="/static/incident.js"></script>
 </body>
 </html>

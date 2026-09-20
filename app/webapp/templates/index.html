@@ -6,40 +6,54 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <h1>Black Box</h1>
-    <div id="status-pill" class="pill pill-unknown">checking…</div>
-  </header>
-
-  <main class="grid">
-    <section class="card">
-      <h2>System right now</h2>
-      <div class="metrics">
-        <div class="metric">
-          <span class="metric-label">CPU</span>
-          <div class="bar"><div id="cpu-bar" class="bar-fill"></div></div>
-          <span id="cpu-value" class="metric-value">–</span>
-        </div>
-        <div class="metric">
-          <span class="metric-label">Memory</span>
-          <div class="bar"><div id="mem-bar" class="bar-fill"></div></div>
-          <span id="mem-value" class="metric-value">–</span>
-        </div>
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="brand"><span class="brand-mark"></span> Black Box</div>
+      <a class="nav-link active" href="/">◆ Dashboard</a>
+      <div class="nav-section-label">Recent incidents</div>
+      <div id="sidebar-incidents"></div>
+      <div class="sidebar-status">
+        <span id="sidebar-status-dot" class="status-dot"></span>
+        <span id="sidebar-status-text">checking…</span>
       </div>
-      <table class="proc-table">
-        <thead><tr><th>Process</th><th>CPU%</th><th>Mem%</th></tr></thead>
-        <tbody id="proc-rows"></tbody>
-      </table>
-    </section>
+    </nav>
 
-    <section class="card">
-      <h2>Incidents</h2>
-      <p class="hint">Automatic on crash/exception/sustained load, or trigger one yourself:
-        <code>echo "reason" &gt; ~/.blackbox/trigger_now</code></p>
-      <ul id="incident-list" class="incident-list"></ul>
-    </section>
-  </main>
+    <main class="main">
+      <header class="page-header">
+        <h1>Dashboard</h1>
+        <div id="status-pill" class="pill pill-unknown">checking…</div>
+      </header>
 
+      <div class="dash-grid">
+        <section class="card">
+          <h2>System right now</h2>
+          <div class="gauges">
+            <div class="gauge">
+              <div class="gauge-label"><span>CPU</span><span id="cpu-value" class="gauge-value">–</span></div>
+              <div class="bar"><div id="cpu-bar" class="bar-fill"></div></div>
+            </div>
+            <div class="gauge">
+              <div class="gauge-label"><span>Memory</span><span id="mem-value" class="gauge-value">–</span></div>
+              <div class="bar"><div id="mem-bar" class="bar-fill"></div></div>
+            </div>
+          </div>
+          <table class="proc-table">
+            <thead><tr><th>Process</th><th>CPU%</th><th>Mem%</th></tr></thead>
+            <tbody id="proc-rows"></tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>Incidents</h2>
+          <p class="hint">Automatic on crash/exception/sustained load, or trigger one yourself:<br />
+            <code>echo "reason" &gt; ~/.blackbox/trigger_now</code></p>
+          <ul id="incident-list" class="incident-list"></ul>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/sidebar.js"></script>
   <script src="/static/dashboard.js"></script>
 </body>
 </html>

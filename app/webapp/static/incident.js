@@ -22,6 +22,13 @@ const KIND_BASE_SIZE = {
 };
 
 let cy = null;
+let currentIncident = null;
+
+const CORRELATION_ICON = {
+  crash_matches_termination: "link",
+  cpu_spike_process: "cpu",
+  recent_terminal_commands: "list",
+};
 
 function wireIcons() {
   document.getElementById("icon-grid").innerHTML = ICONS.grid;
@@ -44,6 +51,7 @@ async function loadIncident() {
     return;
   }
   const incident = await res.json();
+  currentIncident = incident;
   renderMeta(incident);
   renderExplanation(incident);
   renderScreenshot(incident);
@@ -88,7 +96,10 @@ function renderExplanation(incident) {
   const correlations = incident.correlations || [];
   if (correlations.length) {
     chipRow.innerHTML = correlations
-      .map((c) => `<span class="chip" title="${escapeHtml(c.description)}"><span class="dot"></span>${escapeHtml(c.kind.replace(/_/g, " "))}</span>`)
+      .map(
+        (c) =>
+          `<span class="chip" title="${escapeHtml(c.description)}"><span class="icon">${ICONS[CORRELATION_ICON[c.kind] || "link"]}</span>${escapeHtml(c.kind.replace(/_/g, " "))}</span>`
+      )
       .join("");
   } else {
     document.getElementById("correlations-section").style.display = "none";
@@ -183,7 +194,12 @@ function renderGraph(graph) {
 
   cy.on("tap", "node", (evt) => {
     const data = evt.target.data();
-    document.getElementById("node-detail").textContent = data.detail || "(no detail)";
+    const detailBox = document.getElementById("node-detail");
+    if (data.kind === "screenshot" && currentIncident && currentIncident.screenshot_url) {
+      detailBox.innerHTML = `<img src="${currentIncident.screenshot_url}" alt="screenshot" style="width:100%;border-radius:6px;display:block" />`;
+    } else {
+      detailBox.textContent = data.detail || "(no detail)";
+    }
   });
 
   pulseNode(cy.getElementById("trigger"));

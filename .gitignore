@@ -11,3 +11,6 @@ incidents/*
 !incidents/.gitkeep
 *.db
 *.db-journal
+
+# Native service build output — built from source, not committed.
+native/build/

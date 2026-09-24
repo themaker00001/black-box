@@ -1,6 +1,44 @@
 document.getElementById("icon-grid").innerHTML = ICONS.grid;
 document.getElementById("icon-cpu").innerHTML = ICONS.cpu;
 document.getElementById("icon-activity").innerHTML = ICONS.activity;
+document.getElementById("icon-help").innerHTML = ICONS.helpCircle;
+document.getElementById("icon-how-it-works-close").innerHTML = ICONS.x;
+
+const HOW_IT_WORKS_KEY = "blackbox-hide-howitworks";
+
+function renderHowItWorks() {
+  const banner = document.getElementById("how-it-works");
+  let hidden = false;
+  try {
+    hidden = localStorage.getItem(HOW_IT_WORKS_KEY) === "1";
+  } catch (err) {
+    // No persistence available — just show it every time, harmless.
+  }
+  if (hidden) {
+    banner.style.display = "none";
+    return;
+  }
+  document.getElementById("steps-row").innerHTML = HOW_IT_WORKS_STEPS.map(
+    (step, i) => `
+      ${i > 0 ? `<span class="icon step-chevron">${ICONS.chevronRight}</span>` : ""}
+      <div class="step">
+        <div class="step-icon-circle">${ICONS[step.icon]}</div>
+        <div class="step-title">${step.title}</div>
+        <div class="step-detail">${step.detail}</div>
+      </div>`
+  ).join("");
+}
+
+document.getElementById("how-it-works-close").addEventListener("click", () => {
+  document.getElementById("how-it-works").style.display = "none";
+  try {
+    localStorage.setItem(HOW_IT_WORKS_KEY, "1");
+  } catch (err) {
+    // Nothing to persist to; it'll just reappear next visit, which is fine.
+  }
+});
+
+renderHowItWorks();
 
 const RADIUS = 26;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -12,13 +50,13 @@ function gaugeColor(value) {
   return value >= 90 ? "var(--red)" : value >= 70 ? "var(--peach)" : "var(--accent)";
 }
 
-function renderGauge(label, value) {
+function renderGauge(label, value, tooltip) {
   const pct = value ?? 0;
   const offset = CIRCUMFERENCE * (1 - Math.min(pct, 100) / 100);
   const color = gaugeColor(value);
   const displayValue = value === null || value === undefined ? "–" : `${value.toFixed(1)}%`;
   return `
-    <div class="radial-gauge">
+    <div class="radial-gauge" title="${tooltip}">
       <svg width="64" height="64" viewBox="0 0 64 64">
         <circle class="track" cx="32" cy="32" r="${RADIUS}"></circle>
         <circle class="fill" cx="32" cy="32" r="${RADIUS}"
@@ -35,15 +73,39 @@ function renderGauge(label, value) {
 
 function renderStatTiles(status, incidentCount) {
   const tiles = [
-    { icon: "check", cls: status.ok ? "green" : "", value: status.ok ? "OK" : "Alert", label: "System status" },
-    { icon: "layers", cls: "blue", value: status.buffered_events ?? 0, label: "Buffered events" },
-    { icon: "activity", cls: "peach", value: incidentCount, label: "Total incidents" },
-    { icon: "cube", cls: "", value: (status.top_processes || []).length, label: "Tracked processes" },
+    {
+      icon: "check",
+      cls: status.ok ? "green" : "",
+      value: status.ok ? "All good" : "Needs attention",
+      label: "System status",
+      tooltip: "Whether your Mac looks like it's behaving normally right now.",
+    },
+    {
+      icon: "layers",
+      cls: "blue",
+      value: status.buffered_events ?? 0,
+      label: "Remembered events",
+      tooltip: "Activity from the last ~5 minutes, kept ready as evidence if something breaks.",
+    },
+    {
+      icon: "activity",
+      cls: "peach",
+      value: incidentCount,
+      label: "Problems investigated",
+      tooltip: "How many times Black Box has caught a problem and explained it.",
+    },
+    {
+      icon: "cube",
+      cls: "",
+      value: (status.top_processes || []).length,
+      label: "Apps being watched",
+      tooltip: "Processes currently showing up in the resource-usage snapshot.",
+    },
   ];
   document.getElementById("stat-grid").innerHTML = tiles
     .map(
       (t) => `
-      <div class="stat-tile">
+      <div class="stat-tile" title="${t.tooltip}">
         <div class="stat-icon ${t.cls}">${ICONS[t.icon]}</div>
         <div>
           <div class="stat-value">${t.value}</div>
@@ -84,7 +146,9 @@ async function refreshStatus() {
   pill.textContent = status.ok ? "Everything OK" : "Needs attention";
   pill.className = "pill " + (status.ok ? "pill-ok" : "pill-bad");
 
-  document.getElementById("gauges").innerHTML = renderGauge("CPU", status.cpu_percent) + renderGauge("Memory", status.memory_percent);
+  document.getElementById("gauges").innerHTML =
+    renderGauge("CPU", status.cpu_percent, "How hard your processors are working right now.") +
+    renderGauge("Memory", status.memory_percent, "How much of your RAM is currently in use.");
 
   cpuHistory.push(status.cpu_percent ?? 0);
   if (cpuHistory.length > HISTORY_LEN) cpuHistory.shift();
@@ -112,7 +176,7 @@ async function refreshIncidents(status) {
   list.innerHTML = "";
 
   if (incidents.length === 0) {
-    list.innerHTML = `<li class="incident-empty">${ICONS.activity} No incidents recorded yet.</li>`;
+    list.innerHTML = `<li class="incident-empty">${ICONS.activity} Nothing to report yet — Black Box is watching quietly in the background.</li>`;
   } else {
     for (const incident of incidents) {
       const li = document.createElement("li");
@@ -120,7 +184,7 @@ async function refreshIncidents(status) {
       li.innerHTML = `<div class="incident-row-icon">${ICONS.alert}</div>
         <div class="incident-row-main">
           <a class="incident-row-title" href="/incidents/${incident.incident_id}">${escapeHtml(incident.trigger_reason)}</a>
-          <span class="incident-row-sub">${new Date(incident.created_at).toLocaleString()}</span>
+          <span class="incident-row-sub">${humanizeTrigger(incident.trigger_name)} · ${new Date(incident.created_at).toLocaleString()}</span>
         </div>
         ${badge}`;
       list.appendChild(li);

@@ -62,8 +62,8 @@ function renderMeta(incident) {
   document.getElementById("graph-title-text").textContent = incident.trigger_reason;
   document.getElementById("meta-title").textContent = incident.trigger_reason;
   document.getElementById("meta-sub").textContent =
-    `${new Date(incident.created_at).toLocaleString()} · ${incident.trigger_name} · ` +
-    `${incident.event_count} events · ${incident.model_used || "n/a"}`;
+    `${humanizeTrigger(incident.trigger_name)} · ${new Date(incident.created_at).toLocaleString()} · ` +
+    `${incident.event_count} events captured · ${incident.model_used || "n/a"}`;
 }
 
 function renderExplanation(incident) {

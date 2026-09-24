@@ -40,12 +40,12 @@
           <button id="zoom-fit" class="icon-btn" title="Fit to view"><span class="icon" id="icon-maximize"></span></button>
         </div>
         <div class="graph-legend">
-          <span><span class="legend-dot" style="background:#ff5c72"></span> Trigger</span>
-          <span><span class="legend-dot" style="background:var(--accent)"></span> Root cause</span>
-          <span><span class="legend-dot" style="background:var(--accent-2)"></span> Subject process</span>
-          <span><span class="legend-dot" style="background:#f3c14b"></span> Correlation</span>
-          <span><span class="legend-dot" style="background:#5b9dff"></span> Event</span>
-          <span><span class="legend-dot" style="background:#4fd8c4"></span> Screen</span>
+          <span title="What set this incident off"><span class="legend-dot" style="background:#ff5c72"></span> Trigger</span>
+          <span title="The AI's best guess at why this happened"><span class="legend-dot" style="background:var(--accent)"></span> Root cause</span>
+          <span title="The specific app/process most involved"><span class="legend-dot" style="background:var(--accent-2)"></span> Subject process</span>
+          <span title="A pattern the system noticed connecting two pieces of evidence"><span class="legend-dot" style="background:#f3c14b"></span> Correlation</span>
+          <span title="Something that happened in the ~5 minutes before"><span class="legend-dot" style="background:#5b9dff"></span> Event</span>
+          <span title="A snapshot of your screen at the time"><span class="legend-dot" style="background:#4fd8c4"></span> Screen</span>
         </div>
       </section>
 
@@ -54,30 +54,31 @@
           <div class="panel-section">
             <div class="meta-title" id="meta-title">Loading…</div>
             <div class="meta-sub" id="meta-sub"></div>
+            <p class="hint" style="margin-top:8px">This map traces what led up to the problem. Hover a circle to see how it connects to the rest; click it for details below.</p>
           </div>
 
           <div class="panel-section">
             <h3><span class="icon" id="icon-node"></span> Node detail</h3>
-            <div id="node-detail" class="node-detail-box">Click a node in the graph.</div>
+            <div id="node-detail" class="node-detail-box">Click any circle in the graph to see what it means.</div>
           </div>
 
           <div class="panel-section">
-            <h3><span class="icon" id="icon-cause"></span> Most likely cause</h3>
+            <h3 title="The AI's best explanation for what caused this, in plain English"><span class="icon" id="icon-cause"></span> Most likely cause</h3>
             <div id="root-cause-card" class="explain-card root-cause"></div>
           </div>
 
           <div class="panel-section">
-            <h3><span class="icon" id="icon-evidence"></span> Supporting evidence</h3>
+            <h3 title="The specific things the AI saw that back up its explanation"><span class="icon" id="icon-evidence"></span> Supporting evidence</h3>
             <div id="evidence-card" class="explain-card evidence"></div>
           </div>
 
           <div class="panel-section">
-            <h3><span class="icon" id="icon-steps"></span> Suggested next steps</h3>
+            <h3 title="What to actually do about it"><span class="icon" id="icon-steps"></span> Suggested next steps</h3>
             <div id="next-steps-card" class="explain-card next-steps"></div>
           </div>
 
           <div class="panel-section" id="correlations-section">
-            <h3><span class="icon" id="icon-link"></span> Correlated findings</h3>
+            <h3 title="Patterns the system automatically noticed linking different pieces of evidence together"><span class="icon" id="icon-link"></span> Correlated findings</h3>
             <div class="chip-row" id="correlation-chips"></div>
           </div>
 
@@ -94,6 +95,7 @@
     const INCIDENT_ID = {{ incident_id | tojson }};
   </script>
   <script src="/static/icons.js"></script>
+  <script src="/static/labels.js"></script>
   <script src="/static/theme.js"></script>
   <script src="/static/sidebar.js"></script>
   <script src="/static/incident.js"></script>

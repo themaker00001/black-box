@@ -28,9 +28,18 @@
 
     <main class="main">
       <header class="page-header">
-        <h1>Dashboard</h1>
+        <div>
+          <h1>Dashboard</h1>
+          <p class="page-subtitle">Black Box is watching your Mac. If something breaks, it explains what happened right here.</p>
+        </div>
         <div id="status-pill" class="pill pill-unknown">checking…</div>
       </header>
+
+      <section class="card how-it-works" id="how-it-works">
+        <button class="icon-btn how-it-works-close" id="how-it-works-close" title="Hide this"><span class="icon" id="icon-how-it-works-close"></span></button>
+        <h2><span class="icon" id="icon-help"></span> How Black Box works</h2>
+        <div class="steps-row" id="steps-row"></div>
+      </section>
 
       <div class="stat-grid" id="stat-grid"></div>
 
@@ -50,7 +59,7 @@
 
         <section class="card">
           <h2><span class="icon" id="icon-activity"></span> Incidents</h2>
-          <p class="hint">Automatic on crash/exception/sustained load, or trigger one yourself:<br />
+          <p class="hint">Automatic the moment a crash, error, or resource spike happens — or trigger one yourself:<br />
             <code>echo "reason" &gt; ~/.blackbox/trigger_now</code></p>
           <ul id="incident-list" class="incident-list"></ul>
         </section>
@@ -59,6 +68,7 @@
   </div>
 
   <script src="/static/icons.js"></script>
+  <script src="/static/labels.js"></script>
   <script src="/static/theme.js"></script>
   <script src="/static/sidebar.js"></script>
   <script src="/static/dashboard.js"></script>

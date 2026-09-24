@@ -33,6 +33,8 @@ class SystemCaptureSettings(BaseModel):
     enabled: bool = True
     interval_seconds: float = 2.0
     collect_gpu: bool = True
+    use_native_binary: bool = False
+    native_binary_path: Path = Path("native/build/sysmon")
 
 
 class ProcessCaptureSettings(BaseModel):
@@ -137,6 +139,7 @@ class Settings(BaseModel):
         """Return a copy with every filesystem path expanded (~, env vars)."""
         data: dict[str, Any] = self.model_dump()
         data["capture"]["screen"]["storage_dir"] = _expand(str(self.capture.screen.storage_dir))
+        data["capture"]["system"]["native_binary_path"] = _expand(str(self.capture.system.native_binary_path))
         data["capture"]["terminal"]["event_log_path"] = _expand(str(self.capture.terminal.event_log_path))
         data["capture"]["os_events"]["diagnostic_reports_dir"] = _expand(
             str(self.capture.os_events.diagnostic_reports_dir)

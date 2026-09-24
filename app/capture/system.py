@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import logging
 import subprocess
 import threading
 import time
+from pathlib import Path
 
 import psutil
 
@@ -60,6 +62,7 @@ class SystemMetricsCollector:
     def start(self) -> None:
         if self._thread is not None:
             return
+        self._stop_event.clear()
         psutil.cpu_percent(percpu=True)  # prime the internal sampler
         self._thread = threading.Thread(target=self._run, name="system-collector", daemon=True)
         self._thread.start()
@@ -113,3 +116,95 @@ class SystemMetricsCollector:
             # Stop retrying every cycle once we know it's unavailable on this machine.
             self._gpu_available = False
         return gpu
+
+
+def parse_native_sysmon_line(line: str) -> SystemMetricsPayload | None:
+    """Turns one JSON line from the native/sysmon binary into a payload.
+    Pure and side-effect-free so it's testable without spawning the process.
+    Disk I/O isn't sampled by the native binary (see native/README.md), so
+    those two fields are reported as 0.0 rather than left out."""
+    line = line.strip()
+    if not line:
+        return None
+    try:
+        raw = json.loads(line)
+    except json.JSONDecodeError:
+        logger.warning("skipping malformed sysmon line: %r", line[:200])
+        return None
+
+    try:
+        return SystemMetricsPayload(
+            cpu_percent=raw["cpu_percent"],
+            cpu_per_core=raw.get("cpu_per_core", []),
+            memory_percent=raw["memory_percent"],
+            memory_available_mb=raw["memory_available_mb"],
+            memory_used_mb=raw["memory_used_mb"],
+            swap_percent=raw["swap_percent"],
+            disk_read_bytes_per_sec=0.0,
+            disk_write_bytes_per_sec=0.0,
+            net_sent_bytes_per_sec=raw["net_sent_bytes_per_sec"],
+            net_recv_bytes_per_sec=raw["net_recv_bytes_per_sec"],
+        )
+    except KeyError:
+        logger.warning("sysmon line missing expected fields: %r", line[:200])
+        return None
+
+
+class NativeSystemMetricsCollector:
+    """Same job as SystemMetricsCollector, but sourced from the native C++
+    sysmon binary instead of psutil — spawned as a subprocess and read line
+    by line, exactly like piping any other CLI tool. Falls back to doing
+    nothing (and logging why) if the binary isn't built; main.py is
+    responsible for choosing this vs. the psutil collector."""
+
+    def __init__(self, bus: EventBus, settings: SystemCaptureSettings) -> None:
+        self._bus = bus
+        self._settings = settings
+        self._process: subprocess.Popen | None = None
+        self._thread: threading.Thread | None = None
+
+    def start(self) -> None:
+        if self._thread is not None:
+            return
+        binary_path = Path(self._settings.native_binary_path)
+        if not binary_path.is_file():
+            logger.error(
+                "native sysmon binary not found at %s (see native/README.md to build it); "
+                "system metrics will not be collected",
+                binary_path,
+            )
+            return
+
+        self._process = subprocess.Popen(
+            [str(binary_path), str(self._settings.interval_seconds)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+        self._thread = threading.Thread(target=self._run, name="native-system-collector", daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        if self._process:
+            self._process.terminate()
+            try:
+                self._process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._process.kill()
+            self._process = None
+        if self._thread:
+            self._thread.join(timeout=5)
+            self._thread = None
+
+    def _run(self) -> None:
+        assert self._process is not None and self._process.stdout is not None
+        for line in self._process.stdout:
+            payload = parse_native_sysmon_line(line)
+            if payload is not None:
+                self._bus.publish(system_metrics_event(payload))
+        # The loop exits when the process's stdout closes (crash or stop()).
+        return_code = self._process.poll() if self._process else None
+        if return_code not in (None, 0, -15):  # -15 == SIGTERM from our own stop()
+            stderr = self._process.stderr.read() if self._process and self._process.stderr else ""
+            logger.error("native sysmon exited unexpectedly (code %s): %s", return_code, stderr.strip())

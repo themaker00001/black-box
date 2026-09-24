@@ -10,7 +10,7 @@ from app.buffer.circular_buffer import CircularBuffer
 from app.capture.os_events import OsEventsCollector
 from app.capture.processes import ProcessCollector
 from app.capture.screen import ScreenCollector
-from app.capture.system import SystemMetricsCollector
+from app.capture.system import NativeSystemMetricsCollector, SystemMetricsCollector
 from app.capture.terminal import TerminalCollector
 from app.config.settings import Settings, load_settings
 from app.events.bus import EventBus
@@ -30,6 +30,18 @@ from app.webapp.server import WebServer
 logger = logging.getLogger(__name__)
 
 
+def _build_system_collector(bus: EventBus, settings: Settings) -> SystemMetricsCollector | NativeSystemMetricsCollector:
+    if settings.capture.system.use_native_binary:
+        if settings.capture.system.native_binary_path.is_file():
+            return NativeSystemMetricsCollector(bus, settings.capture.system)
+        logger.warning(
+            "use_native_binary is set but %s doesn't exist (see native/README.md to build it); "
+            "falling back to the psutil collector",
+            settings.capture.system.native_binary_path,
+        )
+    return SystemMetricsCollector(bus, settings.capture.system)
+
+
 class BlackBox:
     """Wires the whole pipeline together: capture -> bus -> buffer,
     triggers -> incident manager -> evidence -> AI agent -> report/storage."""
@@ -38,6 +50,7 @@ class BlackBox:
         self._settings = settings
         self._bus = EventBus()
         self._screen = ScreenCollector(self._bus, settings.capture.screen)
+        self._terminal = TerminalCollector(self._bus, settings.capture.terminal)
         self._buffer = CircularBuffer(
             retention_seconds=settings.buffer.retention_seconds,
             on_evict=self._on_evict,
@@ -46,9 +59,9 @@ class BlackBox:
 
         self._collectors = [
             self._screen,
-            SystemMetricsCollector(self._bus, settings.capture.system),
+            _build_system_collector(self._bus, settings),
             ProcessCollector(self._bus, settings.capture.processes),
-            TerminalCollector(self._bus, settings.capture.terminal),
+            self._terminal,
             OsEventsCollector(self._bus, settings.capture.os_events),
         ]
 

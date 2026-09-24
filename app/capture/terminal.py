@@ -35,6 +35,7 @@ class TerminalCollector:
             return
         if self._thread is not None:
             return
+        self._stop_event.clear()
         self._settings.event_log_path.parent.mkdir(parents=True, exist_ok=True)
         self._settings.event_log_path.touch(exist_ok=True)
         self._thread = threading.Thread(target=self._run, name="terminal-collector", daemon=True)
@@ -45,6 +46,15 @@ class TerminalCollector:
         if self._thread:
             self._thread.join(timeout=5)
             self._thread = None
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Flips capture on/off at runtime (used by the dashboard's settings
+        toggle) without needing a process restart."""
+        self._settings.enabled = enabled
+        if enabled:
+            self.start()
+        else:
+            self.stop()
 
     def _run(self) -> None:
         path = self._settings.event_log_path

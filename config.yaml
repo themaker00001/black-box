@@ -18,6 +18,8 @@ capture:
     enabled: true
     interval_seconds: 2.0
     collect_gpu: true             # best-effort; disables itself silently if unavailable
+    use_native_binary: false      # use native/sysmon (C++) instead of psutil for cpu/mem/swap/net
+    native_binary_path: "native/build/sysmon"   # see native/README.md to build it
 
   processes:
     enabled: true

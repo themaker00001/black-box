@@ -29,8 +29,9 @@ class ScreenCollector:
         self._settings.storage_dir.mkdir(parents=True, exist_ok=True)
 
     def start(self) -> None:
-        if self._thread is not None:
+        if not self._settings.enabled or self._thread is not None:
             return
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._run, name="screen-collector", daemon=True)
         self._thread.start()
 
@@ -40,8 +41,17 @@ class ScreenCollector:
             self._thread.join(timeout=5)
             self._thread = None
 
+    def set_enabled(self, enabled: bool) -> None:
+        """Flips capture on/off at runtime (used by the dashboard's settings
+        toggle) without needing a process restart."""
+        self._settings.enabled = enabled
+        if enabled:
+            self.start()
+        else:
+            self.stop()
+
     def _run(self) -> None:
-        with mss.mss() as sct:
+        with mss.MSS() as sct:
             monitors = self._select_monitors(sct)
             while not self._stop_event.wait(self._settings.interval_seconds):
                 for monitor_id, monitor in monitors:
@@ -50,14 +60,14 @@ class ScreenCollector:
                     except Exception:
                         logger.exception("screen capture failed for monitor %s", monitor_id)
 
-    def _select_monitors(self, sct: mss.mss) -> list[tuple[int, dict]]:
+    def _select_monitors(self, sct: mss.MSS) -> list[tuple[int, dict]]:
         all_monitors = sct.monitors  # index 0 is the virtual "all monitors" bounding box
         if self._settings.monitor == "all":
             return list(enumerate(all_monitors))[1:] or [(0, all_monitors[0])]
         index = int(self._settings.monitor)
         return [(index, all_monitors[index])]
 
-    def _capture_one(self, sct: mss.mss, monitor_id: int, monitor: dict) -> None:
+    def _capture_one(self, sct: mss.MSS, monitor_id: int, monitor: dict) -> None:
         grab = sct.grab(monitor)
         image = Image.frombytes("RGB", grab.size, grab.bgra, "raw", "BGRX")
         image = self._downscale(image)

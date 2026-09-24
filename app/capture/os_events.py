@@ -37,6 +37,7 @@ class OsEventsCollector:
     def start(self) -> None:
         if self._thread is not None:
             return
+        self._stop_event.clear()
         self._seed_known_reports()
         self._thread = threading.Thread(target=self._run, name="os-events-collector", daemon=True)
         self._thread.start()

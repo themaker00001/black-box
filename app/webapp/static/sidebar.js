@@ -4,6 +4,15 @@ function escapeHtmlShared(text) {
   return div.innerHTML;
 }
 
+// These two live in the shared sidebar markup on every page, so they're
+// wired here rather than per-page — a page that forgot to set them (as the
+// settings page originally did for icon-grid) would just show blank icons.
+const navIcons = { "icon-grid": "grid", "icon-settings": "sliders" };
+for (const [id, iconName] of Object.entries(navIcons)) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = ICONS[iconName];
+}
+
 async function refreshSidebar() {
   try {
     const [statusRes, incidentsRes] = await Promise.all([fetch("/api/status"), fetch("/api/incidents")]);

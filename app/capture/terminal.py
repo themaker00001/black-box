@@ -47,6 +47,10 @@ class TerminalCollector:
             self._thread.join(timeout=5)
             self._thread = None
 
+    @property
+    def enabled(self) -> bool:
+        return self._settings.enabled
+
     def set_enabled(self, enabled: bool) -> None:
         """Flips capture on/off at runtime (used by the dashboard's settings
         toggle) without needing a process restart."""

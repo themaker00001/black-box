@@ -4,8 +4,9 @@ import logging
 import re
 import threading
 from pathlib import Path
+from typing import Protocol
 
-from flask import Flask, abort, jsonify, render_template, send_file
+from flask import Flask, abort, jsonify, render_template, request, send_file
 from werkzeug.serving import make_server
 
 from app.buffer.circular_buffer import CircularBuffer
@@ -16,6 +17,22 @@ from app.webapp.analysis_parser import parse_analysis
 from app.webapp.graph_builder import build_incident_graph
 from app.webapp.status import build_status
 
+
+class ToggleableCollector(Protocol):
+    @property
+    def enabled(self) -> bool: ...
+    def set_enabled(self, enabled: bool) -> None: ...
+
+
+# Keys here are the only settings this page can toggle at runtime — deliberately
+# limited to the privacy-sensitive, opt-in collectors. Core monitoring (system
+# metrics, processes, OS events) isn't exposed here: turning it off would break
+# the tool's actual purpose, so that stays a config.yaml-only decision.
+TOGGLE_DESCRIPTIONS = {
+    "screenshots": "Periodic screenshots of your screen, used as evidence when an incident happens.",
+    "terminal": "Terminal commands (never output), via a shell hook you opt into separately.",
+}
+
 logger = logging.getLogger(__name__)
 
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -24,8 +41,14 @@ _STATIC_DIR = Path(__file__).parent / "static"
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 
-def create_app(buffer: CircularBuffer, store: IncidentStore, settings: Settings) -> Flask:
+def create_app(
+    buffer: CircularBuffer,
+    store: IncidentStore,
+    settings: Settings,
+    toggleable_collectors: dict[str, ToggleableCollector] | None = None,
+) -> Flask:
     app = Flask(__name__, static_folder=str(_STATIC_DIR), template_folder=str(_TEMPLATE_DIR))
+    toggleable_collectors = toggleable_collectors or {}
 
     @app.get("/")
     def index():
@@ -36,6 +59,31 @@ def create_app(buffer: CircularBuffer, store: IncidentStore, settings: Settings)
         if not _SAFE_ID_RE.match(incident_id):
             abort(404)
         return render_template("incident.html", incident_id=incident_id)
+
+    @app.get("/settings")
+    def settings_page():
+        return render_template("settings.html")
+
+    @app.get("/api/settings")
+    def api_settings_get():
+        return jsonify(
+            {
+                key: {"enabled": collector.enabled, "description": TOGGLE_DESCRIPTIONS.get(key, "")}
+                for key, collector in toggleable_collectors.items()
+            }
+        )
+
+    @app.post("/api/settings")
+    def api_settings_post():
+        body = request.get_json(silent=True) or {}
+        updated = {}
+        for key, value in body.items():
+            collector = toggleable_collectors.get(key)
+            if collector is None or not isinstance(value, bool):
+                continue
+            collector.set_enabled(value)
+            updated[key] = collector.enabled
+        return jsonify(updated)
 
     @app.get("/api/status")
     def api_status():
@@ -114,9 +162,15 @@ class WebServer:
     app.run()) so stop() can shut it down cleanly like every other
     collector in this project."""
 
-    def __init__(self, buffer: CircularBuffer, store: IncidentStore, settings: Settings) -> None:
+    def __init__(
+        self,
+        buffer: CircularBuffer,
+        store: IncidentStore,
+        settings: Settings,
+        toggleable_collectors: dict[str, ToggleableCollector] | None = None,
+    ) -> None:
         self._settings = settings
-        self._app = create_app(buffer, store, settings)
+        self._app = create_app(buffer, store, settings, toggleable_collectors)
         self._server = None
         self._thread: threading.Thread | None = None
 

@@ -1,4 +1,3 @@
-document.getElementById("icon-grid").innerHTML = ICONS.grid;
 document.getElementById("icon-cpu").innerHTML = ICONS.cpu;
 document.getElementById("icon-activity").innerHTML = ICONS.activity;
 document.getElementById("icon-help").innerHTML = ICONS.helpCircle;

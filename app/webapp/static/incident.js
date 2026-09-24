@@ -31,7 +31,6 @@ const CORRELATION_ICON = {
 };
 
 function wireIcons() {
-  document.getElementById("icon-grid").innerHTML = ICONS.grid;
   document.getElementById("icon-chevron").innerHTML = ICONS.chevronRight;
   document.getElementById("icon-zoom-in").innerHTML = ICONS.zoomIn;
   document.getElementById("icon-zoom-out").innerHTML = ICONS.zoomOut;

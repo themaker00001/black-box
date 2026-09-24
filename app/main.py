@@ -83,7 +83,12 @@ class BlackBox:
             SystemDetector(self._bus, settings.triggers.system_detector, self._incident_manager.handle_trigger),
         ]
         self._manual_trigger = ManualTrigger(settings.triggers.manual_trigger, self._incident_manager.handle_trigger)
-        self._web_server = WebServer(self._buffer, self._store, settings)
+        self._web_server = WebServer(
+            self._buffer,
+            self._store,
+            settings,
+            toggleable_collectors={"screenshots": self._screen, "terminal": self._terminal},
+        )
 
     def _on_evict(self, event: Event) -> None:
         if event.event_type == "screen.capture":

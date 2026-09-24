@@ -37,6 +37,10 @@ full-screen.
 
 ![Incident mind map](docs/screenshots/incident-mindmap.png)
 
+**Settings** — toggle what gets captured, live, no restart:
+
+![Settings](docs/screenshots/settings.png)
+
 ## Architecture
 
 ```
@@ -55,6 +59,29 @@ Computer
 Every layer only knows about the layer below it — the capture collectors have
 no idea an incident system exists, the buffer has no idea what a crash is, and
 the AI agent never sees raw events, only a pre-correlated evidence package.
+
+### Native system-metrics service (optional, C++)
+
+`native/` is a small, dependency-free C++ CLI tool (`sysmon`) that samples
+CPU, memory, swap, and network throughput directly via macOS mach host
+statistics — no psutil, no shelling out. It's a genuine Unix-pipe tool: one
+JSON line per interval to stdout, nothing else. `NativeSystemMetricsCollector`
+(`app/capture/system.py`) spawns it and reads its output the same way it
+would pipe any other CLI tool.
+
+It's off by default — `capture.system.use_native_binary: false` in
+`config.yaml` uses the existing psutil collector. To try it:
+
+```bash
+cd native
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+then set `use_native_binary: true`. See `native/README.md` for what it does
+and doesn't cover (disk I/O and GPU stay on the psutil path). If the binary
+isn't built, the app logs a warning and falls back to psutil automatically
+rather than silently collecting nothing.
 
 ## Requirements
 
@@ -91,6 +118,11 @@ A local web dashboard starts automatically at
   count, tracked processes), CPU/memory as radial gauges plus a live CPU
   sparkline, a per-process table with inline usage bars, an OK /
   needs-attention banner, and the incident list.
+- **/settings** — toggle screenshot capture and terminal-command capture on
+  or off live, no restart needed. Deliberately limited to those two: they're
+  the privacy-sensitive, opt-in collectors. Core monitoring (system metrics,
+  processes, OS events) stays a `config.yaml`-only decision, since turning it
+  off would break the tool's actual purpose.
 - A theme swatch picker sits at the bottom of the sidebar on every page —
   monochrome by default, five accent colors to choose from, saved per-browser.
 - **/incidents/&lt;id&gt;** — the mind map: the trigger (red) and the AI's
@@ -153,4 +185,6 @@ python -m pytest
 ```
 
 Every module is independently testable; the test suite mocks the Ollama HTTP
-calls so it never depends on a running daemon.
+calls so it never depends on a running daemon. Tests for the native sysmon
+binary (`tests/test_native_sysmon.py`) skip themselves — rather than
+failing — when `native/build/sysmon` hasn't been built.

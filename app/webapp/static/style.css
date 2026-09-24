@@ -20,11 +20,15 @@
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", ui-sans-serif, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* default theme: monochrome */
+  /* default theme: monochrome. --aurora-* drive the ambient background;
+     they stay deliberately dim so the base reads as true black, not tinted. */
   --accent: #e8e8ec;
   --accent-2: #a0a0aa;
   --accent-dim: rgba(232, 232, 236, 0.14);
   --accent-glow: rgba(232, 232, 236, 0.35);
+  --aurora-1: rgba(158, 162, 200, 0.30);
+  --aurora-2: rgba(108, 112, 150, 0.24);
+  --aurora-3: rgba(70, 74, 110, 0.30);
 }
 
 :root[data-theme="violet"] {
@@ -32,30 +36,45 @@
   --accent-2: #7c5cff;
   --accent-dim: rgba(167, 139, 250, 0.16);
   --accent-glow: rgba(167, 139, 250, 0.45);
+  --aurora-1: rgba(167, 139, 250, 0.26);
+  --aurora-2: rgba(124, 92, 255, 0.20);
+  --aurora-3: rgba(79, 60, 190, 0.22);
 }
 :root[data-theme="blue"] {
   --accent: #4f9dff;
   --accent-2: #2f6fe6;
   --accent-dim: rgba(79, 157, 255, 0.16);
   --accent-glow: rgba(79, 157, 255, 0.45);
+  --aurora-1: rgba(79, 157, 255, 0.26);
+  --aurora-2: rgba(47, 111, 230, 0.20);
+  --aurora-3: rgba(30, 80, 170, 0.22);
 }
 :root[data-theme="green"] {
   --accent: #34e0a1;
   --accent-2: #16b384;
   --accent-dim: rgba(52, 224, 161, 0.16);
   --accent-glow: rgba(52, 224, 161, 0.45);
+  --aurora-1: rgba(52, 224, 161, 0.24);
+  --aurora-2: rgba(22, 179, 132, 0.20);
+  --aurora-3: rgba(14, 120, 100, 0.22);
 }
 :root[data-theme="rose"] {
   --accent: #ff6f91;
   --accent-2: #ff3d68;
   --accent-dim: rgba(255, 111, 145, 0.16);
   --accent-glow: rgba(255, 111, 145, 0.45);
+  --aurora-1: rgba(255, 111, 145, 0.24);
+  --aurora-2: rgba(255, 61, 104, 0.18);
+  --aurora-3: rgba(170, 40, 90, 0.22);
 }
 :root[data-theme="amber"] {
   --accent: #ffb545;
   --accent-2: #ff8a00;
   --accent-dim: rgba(255, 181, 69, 0.16);
   --accent-glow: rgba(255, 181, 69, 0.45);
+  --aurora-1: rgba(255, 181, 69, 0.24);
+  --aurora-2: rgba(255, 138, 0, 0.18);
+  --aurora-3: rgba(170, 90, 10, 0.22);
 }
 
 * { box-sizing: border-box; }
@@ -71,6 +90,48 @@ body {
   font-family: var(--font);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient aurora: three slow-drifting blurred blobs behind everything.
+   Fixed + transform-animated so it stays on the compositor and never
+   reflows the page; sits under all content via z-index. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 18% 22%, var(--aurora-1), transparent 70%),
+    radial-gradient(34% 38% at 82% 12%, var(--aurora-2), transparent 70%),
+    radial-gradient(44% 46% at 65% 85%, var(--aurora-3), transparent 72%);
+  filter: blur(70px);
+  will-change: transform;
+  animation: aurora-drift 34s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  33%  { transform: translate3d(2.5%, -2%, 0) scale(1.08); }
+  66%  { transform: translate3d(-2%, 2.5%, 0) scale(1.04); }
+  100% { transform: translate3d(1.5%, 1.5%, 0) scale(1.1); }
+}
+
+/* Fine grain over the aurora so large dark areas don't band on OLED. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  .card, .stat-tile, .panel-section { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -89,8 +150,10 @@ code { font-family: var(--font-mono); }
 }
 
 .sidebar {
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border);
+  background: rgba(6, 6, 8, 0.6);
+  backdrop-filter: blur(26px) saturate(140%);
+  -webkit-backdrop-filter: blur(26px) saturate(140%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   padding: 18px 14px;
@@ -183,9 +246,46 @@ code { font-family: var(--font-mono); }
   align-items: center;
   gap: 8px;
 }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; position: relative; }
 .status-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
-.status-dot.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.status-dot.bad { background: var(--red); box-shadow: 0 0 10px var(--red); }
+
+/* Expanding ring on the "needs attention" state — draws the eye without
+   being a blinking light. */
+.status-dot.bad::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--red);
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  0%   { transform: scale(0.8); opacity: 0.9; }
+  70%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* ---------- loading shimmer ---------- */
+
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0.04) 70%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from { background-position: 180% 0; }
+  to   { background-position: -40% 0; }
+}
+.skeleton-tile { height: 70px; }
+.skeleton-row { height: 14px; margin: 10px 0; }
 
 .main { overflow-y: auto; }
 
@@ -245,15 +345,30 @@ code { font-family: var(--font-mono); }
   padding: 16px 28px 28px;
 }
 
+/* Frosted glass over the aurora: translucent so a hint of the moving
+   colour bleeds through, blurred so it never competes with the content. */
 .card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: rgba(13, 13, 16, 0.66);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
   padding: 20px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.4), 0 20px 40px -24px rgba(0,0,0,0.9);
-  transition: border-color 0.2s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 24px 48px -28px rgba(0, 0, 0, 0.95);
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
-.card:hover { border-color: #2c2c30; transform: translateY(-1px); }
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.13);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 30px 60px -30px rgba(0, 0, 0, 0.95),
+    0 0 40px -18px var(--accent-glow);
+}
 
 @keyframes rise-in {
   from { opacity: 0; transform: translateY(8px); }
@@ -297,17 +412,23 @@ code { font-family: var(--font-mono); }
   padding: 0 28px 4px;
 }
 .stat-tile {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: rgba(13, 13, 16, 0.62);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
   padding: 16px 18px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 30px -22px rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
-.stat-tile:hover { border-color: #2c2c30; transform: translateY(-1px); }
+.stat-tile:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 18px 40px -24px rgba(0,0,0,0.95), 0 0 30px -16px var(--accent-glow);
+}
 .stat-icon {
   width: 34px; height: 34px; border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
@@ -315,8 +436,9 @@ code { font-family: var(--font-mono); }
   flex-shrink: 0;
 }
 .stat-icon.blue { background: rgba(91,157,255,0.15); color: var(--blue); }
-.stat-icon.green { background: rgba(61,220,132,0.15); color: var(--green); }
+.stat-icon.green { background: rgba(61,220,132,0.15); color: var(--green); box-shadow: 0 0 20px -6px var(--green); }
 .stat-icon.peach { background: rgba(255,157,92,0.15); color: var(--peach); }
+.stat-icon.red { background: rgba(255,92,114,0.15); color: var(--red); box-shadow: 0 0 20px -6px var(--red); }
 .stat-value { font-size: 19px; font-weight: 700; line-height: 1.1; font-family: var(--font-mono); }
 .stat-label { font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
 
@@ -335,7 +457,15 @@ code { font-family: var(--font-mono); }
 
 .sparkline-wrap { margin: 14px 0 20px; }
 .sparkline-label { font-size: 11px; color: var(--text-faint); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
-.sparkline-wrap svg { display: block; width: 100%; height: 40px; }
+.sparkline-wrap svg { display: block; width: 100%; height: 40px; overflow: visible; }
+.spark-pulse { transform-box: fill-box; transform-origin: center; animation: spark-ping 2.2s ease-out infinite; }
+@keyframes spark-ping {
+  0%   { transform: scale(1); opacity: 0.6; }
+  70%  { transform: scale(3); opacity: 0; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+.stat-value { font-variant-numeric: tabular-nums; }
 
 .proc-bar-cell { display: flex; align-items: center; gap: 8px; }
 .proc-bar-track { flex: 1; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; max-width: 60px; }
@@ -389,12 +519,13 @@ code { font-family: var(--font-mono); }
 }
 .incident-shell.panel-collapsed { grid-template-columns: 1fr 0px; }
 
+/* Transparent base so the page-level aurora drifts behind the graph;
+   the dot grid sits on top of it for depth. */
 .graph-panel {
   position: relative;
   background:
-    radial-gradient(ellipse at 50% 35%, rgba(203, 166, 247, 0.09), transparent 60%),
-    radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px) 0 0 / 28px 28px,
-    var(--bg);
+    radial-gradient(ellipse at 50% 35%, var(--accent-dim), transparent 62%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 28px 28px;
 }
 /* #cy sits below the topbar strip rather than under a transparent overlay,
    so the graph's own fit()/center never ends up hidden behind it. */
@@ -441,8 +572,10 @@ code { font-family: var(--font-mono); }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
 .panel {
-  background: var(--bg-panel);
-  border-left: 1px solid var(--border);
+  background: rgba(6, 6, 8, 0.66);
+  backdrop-filter: blur(26px) saturate(140%);
+  -webkit-backdrop-filter: blur(26px) saturate(140%);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
   overflow-y: auto;
   overflow-x: hidden;
 }

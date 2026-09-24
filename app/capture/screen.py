@@ -79,7 +79,12 @@ class ScreenCollector:
         timestamp_ns = time.time_ns()
         filename = f"{timestamp_ns}_m{monitor_id}.png"
         path = self._settings.storage_dir / filename
-        image.save(path, format="PNG", optimize=True)
+        # Deliberately not optimize=True: measured on a 1470x956 grab it costs
+        # 0.44s of CPU vs 0.06s, to save ~4.5% on a file that's deleted within
+        # five minutes. At one capture per second that's most of a core burned
+        # continuously — unacceptable for a tool that's supposed to sit quietly
+        # in the background watching for runaway CPU.
+        image.save(path, format="PNG")
 
         payload = ScreenCapturePayload(
             monitor_id=monitor_id,

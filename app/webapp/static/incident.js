@@ -2,12 +2,26 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+/** Normalizes any CSS color to #rrggbb. Cytoscape parses some style
+ *  properties (notably gradient stop colors) as space-separated lists, so an
+ *  "rgb(1, 2, 3)" leaking through breaks the whole stylesheet silently. */
+function toHex(color) {
+  const value = (color || "").trim();
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value;
+  const rgb = value.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i);
+  if (rgb) {
+    const hex = (n) => Number(n).toString(16).padStart(2, "0");
+    return `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`;
+  }
+  return "#5b9dff";
+}
+
 // root_cause/subject read the live theme accent so switching themes recolors
 // the two most important nodes; the rest carry fixed semantic colors that
 // stay meaningful (danger, info, etc.) no matter which accent is active.
 function kindColor(kind) {
-  if (kind === "root_cause") return cssVar("--accent");
-  if (kind === "subject") return cssVar("--accent-2") || cssVar("--accent");
+  if (kind === "root_cause") return toHex(cssVar("--accent"));
+  if (kind === "subject") return toHex(cssVar("--accent-2") || cssVar("--accent"));
   return (
     { trigger: "#ff5c72", correlation: "#f3c14b", screenshot: "#4fd8c4", event: "#5b9dff" }[kind] || "#5b9dff"
   );
@@ -20,6 +34,19 @@ const KIND_BASE_SIZE = {
   screenshot: 24,
   event: 18,
 };
+
+/** Lightens a #rrggbb toward white — used for the inner stop of each node's
+ *  radial gradient so nodes read as lit orbs rather than flat discs.
+ *  Returns hex, never rgb(): Cytoscape parses gradient-stop-colors as a
+ *  space-separated list, so any color containing spaces silently breaks it. */
+function lighten(color, amount) {
+  const match = color.trim().match(/^#([0-9a-f]{6})$/i);
+  if (!match) return color;
+  const value = parseInt(match[1], 16);
+  const channel = (shift) => Math.min(255, Math.round(((value >> shift) & 255) + amount));
+  const hex = (n) => n.toString(16).padStart(2, "0");
+  return `#${hex(channel(16))}${hex(channel(8))}${hex(channel(0))}`;
+}
 
 let cy = null;
 let currentIncident = null;
@@ -132,7 +159,12 @@ function renderGraph(graph) {
           "text-opacity": 0.9,
           width: (n) => sizeFor(n),
           height: (n) => sizeFor(n),
-          "background-color": (n) => kindColor(n.data("kind")),
+          "background-fill": "radial-gradient",
+          "background-gradient-stop-colors": (n) => {
+            const base = kindColor(n.data("kind"));
+            return `${lighten(base, 70)} ${base} ${base}`;
+          },
+          "background-gradient-stop-positions": "0% 55% 100%",
           "border-width": 0,
           "overlay-color": (n) => kindColor(n.data("kind")),
           "overlay-opacity": 0.28,
@@ -143,15 +175,20 @@ function renderGraph(graph) {
         },
       },
       {
+        // Dashes march from cause to effect, so the direction of the story is
+        // readable at a glance instead of only from the arrowheads.
         selector: "edge",
         style: {
-          width: 1,
-          "line-color": cssVar("--border") || "#232326",
+          width: 1.6,
+          "line-color": (e) => kindColor(e.source().data("kind")),
+          "line-opacity": 0.75,
+          "line-style": "dashed",
+          "line-dash-pattern": [5, 7],
           "target-arrow-color": cssVar("--border") || "#232326",
           "target-arrow-shape": "triangle",
           "arrow-scale": 0.7,
           "curve-style": "bezier",
-          opacity: 0.6,
+          opacity: 0.85,
           "transition-property": "opacity",
           "transition-duration": "150ms",
         },
@@ -202,6 +239,26 @@ function renderGraph(graph) {
   });
 
   pulseNode(cy.getElementById("trigger"));
+  startEdgeFlow();
+}
+
+/** Marches the edge dashes so causality visibly flows through the graph.
+ *  Throttled to ~20fps and paused while the tab is hidden — this runs for as
+ *  long as the page is open, so it shouldn't spin the fans. */
+function startEdgeFlow() {
+  const FRAME_MS = 50;
+  let offset = 0;
+  let lastFrame = 0;
+
+  function step(now) {
+    requestAnimationFrame(step);
+    if (document.hidden || !cy) return;
+    if (now - lastFrame < FRAME_MS) return;
+    lastFrame = now;
+    offset = (offset - 1) % 12;
+    cy.edges().style("line-dash-offset", offset);
+  }
+  requestAnimationFrame(step);
 }
 
 function pulseNode(node) {

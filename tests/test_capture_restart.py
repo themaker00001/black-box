@@ -79,6 +79,18 @@ def test_os_events_collector_stop_event_clears_on_restart(tmp_path):
     c.stop()
 
 
+def wait_for(predicate, timeout=8.0):
+    """Polls until predicate() is true. A real screen grab + PNG encode takes
+    long enough (and varies enough with machine load) that a fixed sleep makes
+    these tests fail for reasons that have nothing to do with the code."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.05)
+    return False
+
+
 def test_screen_collector_actually_resumes_capturing_after_restart(tmp_path):
     """End-to-end confirmation (not just the internal flag) for one collector:
     events keep flowing after a stop()/start() cycle, not just before it."""
@@ -88,15 +100,15 @@ def test_screen_collector_actually_resumes_capturing_after_restart(tmp_path):
     c = ScreenCollector(bus, ScreenCaptureSettings(interval_seconds=0.2, storage_dir=tmp_path))
 
     c.start()
-    time.sleep(0.5)
+    assert wait_for(lambda: len(seen) > 0), "collector never captured anything to begin with"
     c.stop()
     count_before_restart = len(seen)
 
     c.start()
-    time.sleep(0.5)
+    resumed = wait_for(lambda: len(seen) > count_before_restart)
     c.stop()
 
-    assert len(seen) > count_before_restart
+    assert resumed
 
 
 def test_screen_collector_set_enabled_toggles_capture(tmp_path):
@@ -110,10 +122,9 @@ def test_screen_collector_set_enabled_toggles_capture(tmp_path):
     assert seen == []
 
     c.set_enabled(True)
-    time.sleep(0.5)
-    assert len(seen) > 0
+    assert wait_for(lambda: len(seen) > 0), "enabling did not resume capture"
 
     c.set_enabled(False)
     count_after_disable = len(seen)
-    time.sleep(0.4)
+    time.sleep(0.6)
     assert len(seen) == count_after_disable  # no new events once disabled again
